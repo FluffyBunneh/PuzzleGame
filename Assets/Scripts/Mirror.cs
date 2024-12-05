@@ -15,8 +15,7 @@ public class Mirror : MonoBehaviour
     private Transform playerTransform;           // Reference to the player's transform
 
     [Header("Mirror Settings")]
-    public bool isFirstMirror = false; // This boolean will be used to mark the first mirror that shoots the light beam
-
+    public bool isFirstMirror = false; // Mark the first mirror that shoots the light beam
     private static Mirror firstMirror;  // Static reference to the first mirror
 
     private void Start()
@@ -31,10 +30,10 @@ public class Mirror : MonoBehaviour
             firstMirror = this;
         }
 
-        // Ensure the LineRenderer is initially disabled (not reflecting) for non-first mirrors
+        // Initially, disable the LineRenderer (not reflecting light for non-first mirrors)
         if (lightBeam != null)
         {
-            lightBeam.enabled = isFirstMirror; // First mirror always has the LineRenderer enabled
+            lightBeam.enabled = isFirstMirror; // First mirror will always have the LineRenderer enabled
         }
     }
 
@@ -85,7 +84,8 @@ public class Mirror : MonoBehaviour
         lightBeam.SetPosition(0, start);
 
         // Cast a ray from the mirror surface and check for collisions with the reflectable objects
-        if (Physics.Raycast(start, direction, out RaycastHit hit, Mathf.Infinity, reflectableLayer))
+        RaycastHit hit;
+        if (Physics.Raycast(start, direction, out hit, Mathf.Infinity, reflectableLayer))
         {
             lightBeam.SetPosition(1, hit.point); // Set the light beam endpoint
 
@@ -95,7 +95,7 @@ public class Mirror : MonoBehaviour
             Mirror nextMirror = hit.collider.GetComponent<Mirror>();
             if (nextMirror != null)
             {
-                nextMirror.ShootLight(); // Call ShootLight on the next mirror if it exists
+                nextMirror.ReflectLight(); // Reflect light on the next mirror
             }
 
             // Check if the hit object is an endpoint
@@ -112,21 +112,22 @@ public class Mirror : MonoBehaviour
         }
     }
 
-    // Function to reflect light on non-first mirrors (in the direction the second mirror is facing)
+    // Function to reflect light on non-first mirrors (these mirrors just reflect light)
     private void ReflectLight()
     {
         if (mirrorSurface == null || lightBeam == null) return;
+
+        // Only reflect if the LineRenderer is enabled (meaning light is being reflected)
+        if (!lightBeam.enabled) return;
 
         Vector3 start = mirrorSurface.position; // Start position of the light
         Vector3 direction = mirrorSurface.forward; // Direction of the light
 
         // Cast a ray from the mirror surface and check for collisions
-        if (Physics.Raycast(start, direction, out RaycastHit hit, Mathf.Infinity, reflectableLayer))
+        RaycastHit hit;
+        if (Physics.Raycast(start, direction, out hit, Mathf.Infinity, reflectableLayer))
         {
             Debug.Log("Raycast hit on mirror: " + hit.collider.name); // Debugging hit info
-
-            // Enable the LineRenderer to show the reflection (only if it's a valid reflection)
-            lightBeam.enabled = true;
 
             // Get the position and direction of the hit object
             Vector3 hitPoint = hit.point;
@@ -152,11 +153,6 @@ public class Mirror : MonoBehaviour
             {
                 endPoint.LightDetected(); // Trigger endpoint detection
             }
-        }
-        else
-        {
-            // If no hit, disable the LineRenderer (no light is reflected)
-            lightBeam.enabled = false;
         }
     }
 
