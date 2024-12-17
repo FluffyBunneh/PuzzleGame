@@ -1,91 +1,93 @@
 using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
 
 public class ReflectiveWallRotation : MonoBehaviour
 {
-    public float rotationSpeed = 50f;     // Speed of wall rotation
-    public float interactionDistance = 5f; // Maximum distance for interaction
-    public Transform player;              // Reference to the player (to disable movement)
+    public float rotationSpeed = 1f;
+    public float interactionDistance = 5f;
+    public Transform player;
 
-    private GameObject nearestReflectiveWall;  // The nearest reflective wall to interact with
-    private bool isInteracting = false;        // Whether the player is interacting with the wall
-
-    private PlayerMovement playerMovement; // Reference to player movement script
-
-    void Start()
-    {
-        playerMovement = player.GetComponent<PlayerMovement>();
-    }
+    private GameObject nearestReflectiveWall;
+    private List<Transform> targetPoints = null;
+    private int currentTargetIndex = -1;
+    private bool isRotating = false;
 
     void Update()
     {
-        // Cast a ray from the player's position to detect walls
-        DetectReflectiveWall();
-
-        // If the player is near a reflective wall and presses F
-        if (nearestReflectiveWall != null && Input.GetKeyDown(KeyCode.F))
+        if (!isRotating)
         {
-            StartInteraction();
-        }
+            DetectReflectiveWall();
 
-        // If the player is interacting with the wall, allow rotation with A/D keys
-        if (isInteracting)
-        {
-            RotateWall();
+            if (nearestReflectiveWall != null && Input.GetKeyDown(KeyCode.F))
+            {
+                InteractWithWall();
+            }
         }
     }
 
     void DetectReflectiveWall()
     {
         RaycastHit hit;
-        // Raycast in front of the player to find a reflective wall
+
         if (Physics.Raycast(player.position, player.forward, out hit, interactionDistance))
         {
-            if (hit.collider.CompareTag("Reflectable")) // Only interact with reflective surfaces
+            if (hit.collider.CompareTag("Reflectable"))
             {
                 nearestReflectiveWall = hit.collider.gameObject;
+
+                ReflectiveWallPoints wallPoints = nearestReflectiveWall.GetComponent<ReflectiveWallPoints>();
+                if (wallPoints != null && targetPoints == null)
+                {
+                    targetPoints = wallPoints.targetPoints;
+                    currentTargetIndex = -1;
+                }
             }
         }
         else
         {
             nearestReflectiveWall = null;
+            targetPoints = null;
         }
     }
 
-    void StartInteraction()
+    void InteractWithWall()
     {
-        if (nearestReflectiveWall != null)
+        if (nearestReflectiveWall != null && targetPoints != null && targetPoints.Count > 0)
         {
-            // Disable player movement
-            playerMovement.enabled = false;
-
-            // Start interaction with the reflective wall
-            isInteracting = true;
+            MoveToNextTarget();
         }
     }
 
-    void RotateWall()
+    void MoveToNextTarget()
     {
-        // Rotate the nearest reflective wall using A and D keys
-        if (Input.GetKey(KeyCode.A))
-        {
-            nearestReflectiveWall.transform.Rotate(Vector3.up * rotationSpeed * Time.deltaTime);
-        }
-        else if (Input.GetKey(KeyCode.D))
-        {
-            nearestReflectiveWall.transform.Rotate(Vector3.down * rotationSpeed * Time.deltaTime);
-        }
+        currentTargetIndex = (currentTargetIndex + 1) % targetPoints.Count;
 
-        // If the player releases F, stop interacting
-        if (Input.GetKeyUp(KeyCode.F))
-        {
-            StopInteraction();
-        }
+        Transform target = targetPoints[currentTargetIndex];
+        isRotating = true;
+        StartCoroutine(RotateToFaceTarget(nearestReflectiveWall.transform, target.position));
     }
 
-    void StopInteraction()
+    IEnumerator RotateToFaceTarget(Transform wallTransform, Vector3 targetPosition)
     {
-        // Enable player movement again and stop interaction
-        playerMovement.enabled = true;
-        isInteracting = false;
+        Quaternion startRotation = wallTransform.rotation;
+        Vector3 directionToTarget = (targetPosition - wallTransform.position).normalized;
+        Quaternion targetRotation = Quaternion.LookRotation(directionToTarget);
+
+        float elapsedTime = 0f;
+        float duration = 1.5f / rotationSpeed;
+
+        while (elapsedTime < duration)
+        {
+            float t = elapsedTime / duration;
+            t = 1f - Mathf.Pow(1f - t, 2);
+
+            wallTransform.rotation = Quaternion.Slerp(startRotation, targetRotation, t);
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+
+        wallTransform.rotation = targetRotation;
+        isRotating = false;
     }
 }

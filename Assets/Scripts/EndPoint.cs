@@ -1,20 +1,26 @@
 using UnityEngine;
 
-public class EndPoint : MonoBehaviour
+public class DoorRaycastHit : MonoBehaviour
 {
-    private bool isLit = false;
+    public GameObject door;  // The door GameObject to disable
+    public float raycastDistance = 10f;  // Distance of the raycast
+    public LayerMask raycastLayerMask;  // LayerMask to specify which objects the raycast can hit
 
-    public void LightDetected()
+    void Update()
     {
-        if (!isLit)
+        // Perform a raycast from the camera or any other point you choose
+        RaycastHit hit;
+        Ray ray = new Ray(transform.position, transform.forward); // Ray coming from the camera or player
+
+        // Cast the ray and check if it hits something
+        if (Physics.Raycast(ray, out hit, raycastDistance, raycastLayerMask))
         {
-            isLit = true;
-            Debug.Log("Puzzle Solved! The endpoint is lit!");
+            // Check if the raycast hits the door object
+            if (hit.collider.gameObject == door)
+            {
+                // Disable the door
+                door.SetActive(false);
+            }
         }
-    }
-
-    private void Update()
-    {
-        isLit = false;
     }
 }
