@@ -12,6 +12,7 @@ public class CharacterControllerScript : MonoBehaviour
 
     public void Start()
     {
+        _rb = GetComponent<Rigidbody>();
     }
 
     void FixedUpdate()
@@ -22,14 +23,14 @@ public class CharacterControllerScript : MonoBehaviour
 
 
         Vector3 move = transform.right * _moveDirXZ.x + transform.forward * _moveDirXZ.z;
-
+        
         _rb.MoveRotation(Quaternion.Euler(0, _cam.transform.eulerAngles.y, 0));
         transform.rotation = Quaternion.Euler(0, _cam.transform.eulerAngles.y, 0);
-        _rb.MovePosition(_rb.position + move * _moveSpeed * Time.deltaTime);
+        _rb.velocity = move * _maxSpeed;
 
         if (_rb.velocity.magnitude > _maxSpeed)
         {
-            _rb.AddForce(_moveDirXZ * -_moveSpeed, ForceMode.Force);
+            _rb.AddForce(move * -_moveSpeed, ForceMode.Force);
         }
     }
 }
