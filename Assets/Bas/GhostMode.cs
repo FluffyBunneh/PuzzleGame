@@ -24,7 +24,7 @@ public class GhostMode : MonoBehaviour
     {
         ActivateGhostMode();
         MoveCam();
-        DieToLight();
+        ColliderEnable();
 
     }
     public void ActivateGhostMode()
@@ -88,7 +88,7 @@ public class GhostMode : MonoBehaviour
             transform.Translate(_moveDirXZ);
         }
     }
-    public void DieToLight()
+    public void ColliderEnable()
     {
         _col = GetComponent<BoxCollider>();
         if (_ghostModeActive)
